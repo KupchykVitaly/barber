@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Онлайн запис - BarberShop</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3rem;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        .step-number {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            background: var(--secondary);
+            color: var(--muted-foreground);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+        .step.active .step-number {
+            background: var(--primary);
+            color: white;
+        }
+        .step-line {
+            flex: 1;
+            height: 2px;
+            background: var(--secondary);
+            margin: 0 0.5rem;
+        }
+        .step.active ~ .step .step-line {
+            background: var(--secondary);
+        }
+        .radio-card {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .radio-card:hover {
+            background: var(--secondary);
+        }
+        .radio-card input[type="radio"] {
+            margin-right: 0.75rem;
+        }
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.5rem;
+        }
+        .time-slot {
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .time-slot:hover {
+            background: var(--secondary);
+        }
+        .time-slot.selected {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .summary-box {
+            background: var(--secondary);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+        }
+        .summary-item {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="index.html" class="logo">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 6l6 6-6 6M18 6l-6 6 6 6"/>
+                    </svg>
+                    <span>BarberShop</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="section">
+        <div class="container">
+            <div style="max-width: 56rem; margin: 0 auto;">
+                <h1 class="text-center" style="margin-bottom: 2rem;">Онлайн запис</h1>
+                
+                <div class="step-indicator" id="step-indicator">
+                    <div class="step active">
+                        <div class="step-number">1</div>
+                        <div class="step-line"></div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-line"></div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-line"></div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                    </div>
+                </div>
+                
+                <div id="booking-form">
+                    <!-- Step 1: Service -->
+                    <div id="step-1" class="step-content">
+                        <div class="card">
+                            <div class="card-content" style="padding: 2rem;">
+                                <h2 style="margin-bottom: 1.5rem;">Крок 1: Оберіть послугу</h2>
+                                <div id="services-list"></div>
+                                <button onclick="nextStep(2)" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem;" id="next-1">Далі</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 2: Barber -->
+                    <div id="step-2" class="step-content" style="display: none;">
+                        <div class="card">
+                            <div class="card-content" style="padding: 2rem;">
+                                <h2 style="margin-bottom: 1.5rem;">Крок 2: Оберіть барбера</h2>
+                                <div id="barbers-list"></div>
+                                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                                    <button onclick="prevStep(1)" class="btn btn-outline" style="flex: 1;">Назад</button>
+                                    <button onclick="nextStep(3)" class="btn btn-primary" style="flex: 1;">Далі</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 3: Date & Time -->
+                    <div id="step-3" class="step-content" style="display: none;">
+                        <div class="card">
+                            <div class="card-content" style="padding: 2rem;">
+                                <h2 style="margin-bottom: 1.5rem;">Крок 3: Оберіть дату і час</h2>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                                    <div>
+                                        <h3 style="margin-bottom: 1rem;">Оберіть дату</h3>
+                                        <input type="date" id="booking-date" class="form-input">
+                                    </div>
+                                    <div>
+                                        <h3 style="margin-bottom: 1rem;">Оберіть час</h3>
+                                        <div class="time-grid" id="time-slots"></div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                                    <button onclick="prevStep(2)" class="btn btn-outline" style="flex: 1;">Назад</button>
+                                    <button onclick="nextStep(4)" class="btn btn-primary" style="flex: 1;" id="next-3">Далі</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 4: Confirmation -->
+                    <div id="step-4" class="step-content" style="display: none;">
+                        <div class="card">
+                            <div class="card-content" style="padding: 2rem;">
+                                <h2 style="margin-bottom: 1.5rem;">Крок 4: Підтвердження</h2>
+                                <div class="summary-box">
+                                    <div class="summary-item">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="12" cy="7" r="4"></circle>
+                                        </svg>
+                                        <div>
+                                            <p class="text-muted">Барбер</p>
+                                            <p id="summary-barber"></p>
+                                        </div>
+                                    </div>
+                                    <div class="summary-item">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                        </svg>
+                                        <div>
+                                            <p class="text-muted">Послуга</p>
+                                            <p id="summary-service"></p>
+                                        </div>
+                                    </div>
+                                    <div class="summary-item">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                                        </svg>
+                                        <div>
+                                            <p class="text-muted">Дата і час</p>
+                                            <p id="summary-datetime"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="auth-warning" style="display: none; padding: 1rem; background: #fef3c7; border: 1px solid #fbbf24; border-radius: var(--radius); margin: 1.5rem 0;">
+                                    <p style="font-size: 0.875rem;">Для підтвердження бронювання необхідно увійти або зареєструватися</p>
+                                </div>
+                                
+                                <div id="error-message"></div>
+                                
+                                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                                    <button onclick="prevStep(3)" class="btn btn-outline" style="flex: 1;">Назад</button>
+                                    <button onclick="confirmBooking()" class="btn btn-primary" style="flex: 1;">Підтвердити бронювання</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        let currentStep = 1;
+        let bookingData = {
+            serviceId: null,
+            barberId: null,
+            date: null,
+            time: null
+        };
+        let services = [];
+        let barbers = [];
+        
+        // Load initial data
+        document.addEventListener('DOMContentLoaded', async () => {
+            await auth.checkAuth();
+            await loadServices();
+            await loadBarbers();
+            generateTimeSlots();
+            
+            // Set minimum date to today
+            const dateInput = document.getElementById('booking-date');
+            dateInput.min = new Date().toISOString().split('T')[0];
+            
+            // Check URL parameters
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('service')) {
+                bookingData.serviceId = params.get('service');
+            }
+            if (params.has('barber')) {
+                bookingData.barberId = params.get('barber');
+            }
+        });
+        
+        async function loadServices() {
+            const servicesList = document.getElementById('services-list');
+            servicesList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            
+            try {
+                services = await api.get('services');
+                servicesList.innerHTML = services.map(service => `
+                    <label class="radio-card">
+                        <input type="radio" name="service" value="${service.id}" 
+                            ${bookingData.serviceId == service.id ? 'checked' : ''}
+                            onchange="selectService('${service.id}')">
+                        <div style="flex: 1;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <div>
+                                    <p style="font-weight: 600;">${service.name}</p>
+                                    <p class="text-muted">${service.description}</p>
+                                </div>
+                                <div style="text-align: right;">
+                                    <p style="font-weight: 600;">${service.price} грн</p>
+                                    <p class="text-muted">${service.duration} хв</p>
+                                </div>
+                            </div>
+                        </div>
+                    </label>
+                `).join('');
+            } catch (error) {
+                servicesList.innerHTML = '<div class="alert alert-error">Помилка завантаження послуг</div>';
+            }
+        }
+        
+        async function loadBarbers() {
+            const barbersList = document.getElementById('barbers-list');
+            barbersList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            
+            try {
+                barbers = await api.get('barbers');
+                barbersList.innerHTML = `
+                    <label class="radio-card">
+                        <input type="radio" name="barber" value="any" 
+                            ${!bookingData.barberId ? 'checked' : ''}
+                            onchange="selectBarber('any')">
+                        <div>
+                            <p style="font-weight: 600;">Будь-який вільний майстер</p>
+                            <p class="text-muted">Перший доступний барбер</p>
+                        </div>
+                    </label>
+                ` + barbers.map(barber => `
+                    <label class="radio-card">
+                        <input type="radio" name="barber" value="${barber.id}"
+                            ${bookingData.barberId == barber.id ? 'checked' : ''}
+                            onchange="selectBarber('${barber.id}')">
+                        <div>
+                            <p style="font-weight: 600;">${barber.name}</p>
+                            <p class="text-muted">${barber.specialization}</p>
+                        </div>
+                    </label>
+                `).join('');
+                
+                if (!bookingData.barberId) {
+                    bookingData.barberId = 'any';
+                }
+            } catch (error) {
+                barbersList.innerHTML = '<div class="alert alert-error">Помилка завантаження барберів</div>';
+            }
+        }
+        
+        function generateTimeSlots() {
+            const timeSlots = document.getElementById('time-slots');
+            const times = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', 
+                          '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
+            
+            timeSlots.innerHTML = times.map(time => `
+                <div class="time-slot" onclick="selectTime('${time}')">${time}</div>
+            `).join('');
+        }
+        
+        function selectService(serviceId) {
+            bookingData.serviceId = serviceId;
+        }
+        
+        function selectBarber(barberId) {
+            bookingData.barberId = barberId;
+        }
+        
+        function selectTime(time) {
+            bookingData.time = time;
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                slot.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+        }
+        
+        function nextStep(step) {
+            // Validation
+            if (currentStep === 1 && !bookingData.serviceId) {
+                showToast('Оберіть послугу', 'error');
+                return;
+            }
+            if (currentStep === 3) {
+                const date = document.getElementById('booking-date').value;
+                if (!date || !bookingData.time) {
+                    showToast('Оберіть дату і час', 'error');
+                    return;
+                }
+                bookingData.date = date;
+            }
+            
+            document.getElementById(`step-${currentStep}`).style.display = 'none';
+            document.getElementById(`step-${step}`).style.display = 'block';
+            
+            // Update step indicator
+            document.querySelectorAll('.step').forEach((el, i) => {
+                if (i < step) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+            
+            currentStep = step;
+            
+            if (step === 4) {
+                updateSummary();
+            }
+        }
+        
+        function prevStep(step) {
+            document.getElementById(`step-${currentStep}`).style.display = 'none';
+            document.getElementById(`step-${step}`).style.display = 'block';
+            
+            document.querySelectorAll('.step').forEach((el, i) => {
+                if (i < step) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+            
+            currentStep = step;
+        }
+        
+        function updateSummary() {
+            const service = services.find(s => s.id == bookingData.serviceId);
+            const barber = barbers.find(b => b.id == bookingData.barberId);
+            
+            document.getElementById('summary-service').innerHTML = `
+                ${service.name}<br>
+                <span class="text-muted">${service.duration} хв • ${service.price} грн</span>
+            `;
+            
+            document.getElementById('summary-barber').textContent = 
+                bookingData.barberId === 'any' ? 'Будь-який вільний майстер' : barber.name;
+            
+            const dateObj = new Date(bookingData.date);
+            const formattedDate = dateObj.toLocaleDateString('uk-UA', { 
+                day: 'numeric', 
+                month: 'long', 
+                year: 'numeric' 
+            });
+            
+            document.getElementById('summary-datetime').innerHTML = `
+                ${formattedDate}<br>
+                ${bookingData.time}
+            `;
+            
+            // Show auth warning if not logged in
+            if (!auth.currentUser) {
+                document.getElementById('auth-warning').style.display = 'block';
+            }
+        }
+        
+        async function confirmBooking() {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.innerHTML = '';
+            
+            if (!auth.currentUser) {
+                showToast('Будь ласка, увійдіть або зареєструйтеся', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+                return;
+            }
+            
+            try {
+                const response = await api.post('bookings', {
+                    service_id: bookingData.serviceId,
+                    barber_id: bookingData.barberId === 'any' ? barbers[0].id : bookingData.barberId,
+                    date: bookingData.date,
+                    time: bookingData.time
+                });
+                
+                if (response.error) {
+                    errorDiv.innerHTML = `<div class="alert alert-error">${response.error}</div>`;
+                } else {
+                    showToast('Бронювання успішно створено!');
+                    setTimeout(() => {
+                        window.location.href = 'account.html';
+                    }, 1500);
+                }
+            } catch (error) {
+                errorDiv.innerHTML = '<div class="alert alert-error">Помилка створення бронювання</div>';
+            }
+        }
+    </script>
+</body>
+</html>

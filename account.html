@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мій акаунт - BarberShop</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            background: var(--muted);
+            padding: 0.25rem;
+            border-radius: var(--radius);
+        }
+        .tab {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: calc(var(--radius) - 2px);
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .tab.active {
+            background: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .booking-card {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .booking-info {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .booking-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .status-upcoming {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status-cancelled {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="index.html" class="logo">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 6l6 6-6 6M18 6l-6 6 6 6"/>
+                    </svg>
+                    <span>BarberShop</span>
+                </a>
+                <div class="header-actions">
+                    <div id="user-menu">
+                        <span id="user-name"></span>
+                        <button id="logout-btn" class="btn btn-ghost">Вийти</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="section">
+        <div class="container">
+            <div style="max-width: 56rem; margin: 0 auto;">
+                <h1 style="margin-bottom: 2rem;">Мій акаунт</h1>
+                
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('bookings')">Мої бронювання</button>
+                    <button class="tab" onclick="switchTab('profile')">Профіль</button>
+                </div>
+                
+                <!-- Bookings Tab -->
+                <div id="bookings-tab" class="tab-content active">
+                    <div style="margin-bottom: 2rem;">
+                        <h2 style="margin-bottom: 1rem;">Майбутні візити</h2>
+                        <div id="upcoming-bookings"></div>
+                    </div>
+                    
+                    <div>
+                        <h2 style="margin-bottom: 1rem;">Історія візитів</h2>
+                        <div id="past-bookings"></div>
+                    </div>
+                </div>
+                
+                <!-- Profile Tab -->
+                <div id="profile-tab" class="tab-content">
+                    <div class="card">
+                        <div class="card-content" style="padding: 2rem;">
+                            <h2 style="margin-bottom: 1.5rem;">Редагувати профіль</h2>
+                            
+                            <div id="profile-message"></div>
+                            
+                            <form id="profile-form">
+                                <div class="form-group">
+                                    <label class="form-label" for="profile-name">Ім'я</label>
+                                    <input type="text" id="profile-name" class="form-input" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label" for="profile-phone">Телефон</label>
+                                    <input type="tel" id="profile-phone" class="form-input" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label" for="profile-email">Email</label>
+                                    <input type="email" id="profile-email" class="form-input" required>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">Зберегти зміни</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        let bookings = [];
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            const isAuth = await auth.checkAuth();
+            if (!isAuth) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            loadBookings();
+            loadProfile();
+        });
+        
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tab}-tab`).classList.add('active');
+        }
+        
+        async function loadBookings() {
+            const upcomingDiv = document.getElementById('upcoming-bookings');
+            const pastDiv = document.getElementById('past-bookings');
+            
+            upcomingDiv.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            pastDiv.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            
+            try {
+                bookings = await api.get('bookings');
+                
+                const upcoming = bookings.filter(b => b.status === 'upcoming');
+                const past = bookings.filter(b => b.status !== 'upcoming');
+                
+                if (upcoming.length > 0) {
+                    upcomingDiv.innerHTML = upcoming.map(b => createBookingCard(b, true)).join('');
+                } else {
+                    upcomingDiv.innerHTML = `
+                        <div class="card">
+                            <div class="card-content" style="padding: 3rem; text-align: center;">
+                                <p class="text-muted" style="margin-bottom: 1rem;">У вас немає майбутніх бронювань</p>
+                                <a href="booking.html" class="btn btn-primary">Записатися зараз</a>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (past.length > 0) {
+                    pastDiv.innerHTML = past.map(b => createBookingCard(b, false)).join('');
+                } else {
+                    pastDiv.innerHTML = '<p class="text-muted">Історія порожня</p>';
+                }
+            } catch (error) {
+                upcomingDiv.innerHTML = '<div class="alert alert-error">Помилка завантаження бронювань</div>';
+            }
+        }
+        
+        function createBookingCard(booking, showCancel) {
+            const date = new Date(booking.booking_date).toLocaleDateString('uk-UA', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+            
+            return `
+                <div class="booking-card">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <div class="booking-info">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                <div>
+                                    <p class="text-muted" style="margin: 0;">Барбер</p>
+                                    <p style="margin: 0;">${booking.barber_name}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="booking-info">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <div>
+                                    <p class="text-muted" style="margin: 0;">Послуга</p>
+                                    <p style="margin: 0;">${booking.service_name}</p>
+                                    <p class="text-muted" style="margin: 0; font-size: 0.875rem;">
+                                        ${booking.duration} хв • ${booking.price} грн
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="booking-info">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                <div>
+                                    <p class="text-muted" style="margin: 0;">Дата і час</p>
+                                    <p style="margin: 0;">${date} о ${booking.booking_time}</p>
+                                </div>
+                            </div>
+                            
+                            ${booking.status === 'cancelled' ? '<span class="booking-status status-cancelled">Скасовано</span>' : ''}
+                        </div>
+                        
+                        ${showCancel && booking.status === 'upcoming' ? `
+                            <button onclick="cancelBooking(${booking.id})" class="btn btn-ghost" style="padding: 0.5rem;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        async function cancelBooking(bookingId) {
+            if (!confirm('Ви впевнені, що хочете скасувати це бронювання?')) {
+                return;
+            }
+            
+            try {
+                const response = await api.post('cancel-booking', { booking_id: bookingId });
+                if (response.success) {
+                    showToast('Бронювання скасовано');
+                    loadBookings();
+                } else {
+                    showToast('Помилка скасування', 'error');
+                }
+            } catch (error) {
+                showToast('Помилка скасування', 'error');
+            }
+        }
+        
+        function loadProfile() {
+            if (auth.currentUser) {
+                document.getElementById('profile-name').value = auth.currentUser.name;
+                document.getElementById('profile-phone').value = auth.currentUser.phone;
+                document.getElementById('profile-email').value = auth.currentUser.email;
+            }
+        }
+        
+        document.getElementById('profile-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('profile-name').value;
+            const phone = document.getElementById('profile-phone').value;
+            const email = document.getElementById('profile-email').value;
+            const messageDiv = document.getElementById('profile-message');
+            
+            try {
+                const response = await api.post('update-profile', { name, phone, email });
+                if (response.success) {
+                    messageDiv.innerHTML = '<div class="alert alert-success">Профіль оновлено</div>';
+                    auth.currentUser.name = name;
+                    auth.currentUser.phone = phone;
+                    auth.currentUser.email = email;
+                    auth.updateUI();
+                    
+                    setTimeout(() => {
+                        messageDiv.innerHTML = '';
+                    }, 3000);
+                } else {
+                    messageDiv.innerHTML = '<div class="alert alert-error">Помилка оновлення</div>';
+                }
+            } catch (error) {
+                messageDiv.innerHTML = '<div class="alert alert-error">Помилка оновлення профілю</div>';
+            }
+        });
+    </script>
+</body>
+</html>
